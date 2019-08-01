@@ -10,7 +10,7 @@ export const typeDefs = gql`
   type Review @key(fields: "id") {
     id: ID!
     body(format: Boolean = false): String
-    author: User @provides(fields: "username")
+    author: User @provides(fields: "username deathDate")
     product: Product
   }
 
@@ -26,6 +26,7 @@ export const typeDefs = gql`
   extend type User @key(fields: "id") {
     id: ID! @external
     username: String @external
+    deathDate: String
     reviews: [Review]
     numberOfReviews: Int!
     metadata: [UserMetadata] @external
@@ -56,8 +57,8 @@ export const typeDefs = gql`
 `;
 
 const usernames = [
-  { id: '1', username: '@ada' },
-  { id: '2', username: '@complete' },
+  { id: '1', username: '@ada', deathDate: '1852-11-27' },
+  { id: '2', username: '@complete', deathDate: '1954-6-7' },
 ];
 const reviews = [
   {
@@ -161,6 +162,10 @@ export const resolvers: GraphQLResolverMap<any> = {
     username(user) {
       const found = usernames.find(username => username.id === user.id);
       return found ? found.username : null;
+    },
+    deathDate(user) {
+      const found = usernames.find(username => username.id === user.id);
+      return found ? found.deathDate : null;
     },
     goodAddress(object) {
       return object.metadata[0].address === '1';

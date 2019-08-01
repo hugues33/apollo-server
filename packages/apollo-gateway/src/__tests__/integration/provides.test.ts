@@ -13,6 +13,7 @@ it('does not have to go to another service when field is given', async () => {
       topReviews {
         author {
           username
+          deathDate
         }
       }
     }
@@ -27,11 +28,11 @@ it('does not have to go to another service when field is given', async () => {
 
   expect(data).toEqual({
     topReviews: [
-      { author: { username: '@ada' } },
-      { author: { username: '@ada' } },
-      { author: { username: '@complete' } },
-      { author: { username: '@complete' } },
-      { author: { username: '@complete' } },
+      { author: { username: '@ada', deathDate: '1852-11-27' } },
+      { author: { username: '@ada', deathDate: '1852-11-27' } },
+      { author: { username: '@complete', deathDate: '1954-6-7' } },
+      { author: { username: '@complete', deathDate: '1954-6-7' } },
+      { author: { username: '@complete', deathDate: '1954-6-7' } },
     ],
   });
 
