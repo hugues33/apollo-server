@@ -1,5 +1,5 @@
 import gql from 'graphql-tag';
-import { execute, overrideResolversInService } from '../execution-utils';
+import { execute, overrideResolversInService, printPlan } from '../execution-utils';
 
 import * as accounts from '../__fixtures__/schemas/accounts';
 import * as books from '../__fixtures__/schemas/books';
@@ -14,6 +14,7 @@ it('does not have to go to another service when field is given', async () => {
         author {
           username
           deathDate
+          age
         }
       }
     }
@@ -26,21 +27,23 @@ it('does not have to go to another service when field is given', async () => {
     },
   );
 
+  console.log(printPlan(queryPlan));
+
   expect(data).toEqual({
     topReviews: [
-      { author: { username: '@ada', deathDate: '1852-11-27' } },
-      { author: { username: '@ada', deathDate: '1852-11-27' } },
-      { author: { username: '@complete', deathDate: '1954-6-7' } },
-      { author: { username: '@complete', deathDate: '1954-6-7' } },
-      { author: { username: '@complete', deathDate: '1954-6-7' } },
+      { author: { username: '@ada', deathDate: '1852-11-27', age: 30 } },
+      { author: { username: '@ada', deathDate: '1852-11-27', age: 30 } },
+      { author: { username: '@complete', deathDate: '1954-6-7', age: 30 } },
+      { author: { username: '@complete', deathDate: '1954-6-7', age: 30 } },
+      { author: { username: '@complete', deathDate: '1954-6-7', age: 30 } },
     ],
   });
 
-  expect(queryPlan).not.toCallService('accounts');
+  expect(queryPlan).toCallService('accounts');
   expect(queryPlan).toCallService('reviews');
 });
 
-it('does not load fields provided even when going to other service', async () => {
+xit('does not load fields provided even when going to other service', async () => {
   const username = jest.fn();
   const localAccounts = overrideResolversInService(accounts, {
     User: {

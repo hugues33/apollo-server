@@ -26,7 +26,9 @@ export const typeDefs = gql`
   extend type User @key(fields: "id") {
     id: ID! @external
     username: String @external
+    birthDate(locale: String): String @external
     deathDate: String
+    age: Int @requires(fields: "birthDate")
     reviews: [Review]
     numberOfReviews: Int!
     metadata: [UserMetadata] @external
@@ -166,6 +168,10 @@ export const resolvers: GraphQLResolverMap<any> = {
     deathDate(user) {
       const found = usernames.find(username => username.id === user.id);
       return found ? found.deathDate : null;
+    },
+    age(user) {
+      console.log(`${user.birthDate} ${user.deathDate}`)
+      return 30;
     },
     goodAddress(object) {
       return object.metadata[0].address === '1';
