@@ -57,7 +57,7 @@ export async function executeQueryPlan<TContext>(
     errors,
   };
 
-  let data: ResultMap | undefined = Object.create(null);
+  let data: ResultMap | undefined | null = Object.create(null);
 
   const captureTraces = !!(
     requestContext.metrics && requestContext.metrics.captureTraces
@@ -288,7 +288,7 @@ async function executeFetch<TContext>(
     context: ExecutionContext<TContext>,
     operation: OperationDefinitionNode,
     variables: Record<string, any>,
-  ): Promise<ResultMap | void> {
+  ): Promise<ResultMap | void | null> {
     const source = print(operation);
     // We declare this as 'any' because it is missing url and method, which
     // GraphQLRequest.http is supposed to have if it exists.
@@ -381,7 +381,7 @@ async function executeFetch<TContext>(
  * @param selectionSet
  */
 function executeSelectionSet(
-  source: Record<string, any>,
+  source: Record<string, any> | null,
   selectionSet: SelectionSetNode,
 ): Record<string, any> {
   const result: Record<string, any> = Object.create(null);
@@ -395,6 +395,11 @@ function executeSelectionSet(
         // Null is a valid value for a response, provided that the types match.
         // Presumably the underlying service has validated that result, so we
         // can pass it through here
+        // Note: undefined is unexpected here due to GraphQL's type coercion / nullability rules
+        if (source === null) {
+          result[responseName] = null;
+          break;
+        }
         if (typeof source[responseName] === 'undefined') {
           throw new Error(`Field "${responseName}" was not found in response.`);
         }

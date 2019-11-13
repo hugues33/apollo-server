@@ -1,7 +1,5 @@
 import 'apollo-server-env';
-import { isNotNullOrUndefined } from 'apollo-env';
 import {
-  ObjectTypeDefinitionNode,
   InterfaceTypeExtensionNode,
   FieldDefinitionNode,
   Kind,
@@ -25,7 +23,6 @@ import {
   FieldNode,
   TypeDefinitionNode,
   InputValueDefinitionNode,
-  InterfaceTypeDefinitionNode,
   TypeExtensionNode,
   BREAK,
   print,
@@ -50,13 +47,7 @@ export function mapFieldNamesToServiceName<Node extends { name: NameNode }>(
 }
 
 export function findDirectivesOnTypeOrField(
-  node: Maybe<
-    | ObjectTypeDefinitionNode
-    | ObjectTypeExtensionNode
-    | FieldDefinitionNode
-    | InterfaceTypeDefinitionNode
-    | InterfaceTypeExtensionNode
-  >,
+  node: Maybe<TypeDefinitionNode | TypeExtensionNode | FieldDefinitionNode>,
   directiveName: string,
 ) {
   return node && node.directives
@@ -360,6 +351,10 @@ export function diffTypeNodes(
     [fieldName: string]: string[];
   } = Object.create(null);
 
+  const unionTypesDiff: {
+    [typeName: string]: boolean;
+  } = Object.create(null);
+
   const document: DocumentNode = {
     kind: Kind.DOCUMENT,
     definitions: [firstNode, secondNode],
@@ -388,6 +383,17 @@ export function diffTypeNodes(
   visit(document, {
     FieldDefinition: fieldVisitor,
     InputValueDefinition: fieldVisitor,
+    UnionTypeDefinition(node) {
+      if (!node.types) return BREAK;
+      for (const namedTypeNode of node.types) {
+        const name = namedTypeNode.name.value;
+        if (unionTypesDiff[name]) {
+          delete unionTypesDiff[name];
+        } else {
+          unionTypesDiff[name] = true;
+        }
+      }
+    },
   });
 
   const typeNameDiff =
@@ -402,7 +408,31 @@ export function diffTypeNodes(
     name: typeNameDiff,
     kind: kindDiff,
     fields: fieldsDiff,
+    unionTypes: unionTypesDiff,
   };
+}
+
+/**
+ * A common implementation of diffTypeNodes to ensure two type nodes are equivalent
+ *
+ * @param firstNode TypeDefinitionNode | TypeExtensionNode
+ * @param secondNode TypeDefinitionNode | TypeExtensionNode
+ */
+export function typeNodesAreEquivalent(
+  firstNode: TypeDefinitionNode | TypeExtensionNode,
+  secondNode: TypeDefinitionNode | TypeExtensionNode,
+) {
+  const { name, kind, fields, unionTypes } = diffTypeNodes(
+    firstNode,
+    secondNode,
+  );
+
+  return (
+    name.length === 0 &&
+    kind.length === 0 &&
+    Object.keys(fields).length === 0 &&
+    Object.keys(unionTypes).length === 0
+  );
 }
 
 /**
@@ -416,3 +446,23 @@ export const defKindToExtKind: { [kind: string]: string } = {
   [Kind.ENUM_TYPE_DEFINITION]: Kind.ENUM_TYPE_EXTENSION,
   [Kind.INPUT_OBJECT_TYPE_DEFINITION]: Kind.INPUT_OBJECT_TYPE_EXTENSION,
 };
+
+// Transform an object's values via a callback function
+export function mapValues<T, U = T>(
+  object: Record<string, T>,
+  callback: (value: T) => U,
+): Record<string, U> {
+  const result: Record<string, U> = Object.create(null);
+
+  for (const [key, value] of Object.entries(object)) {
+    result[key] = callback(value);
+  }
+
+  return result;
+}
+
+export function isNotNullOrUndefined<T>(
+  value: T | null | undefined,
+): value is T {
+  return value !== null && typeof value !== 'undefined';
+}
